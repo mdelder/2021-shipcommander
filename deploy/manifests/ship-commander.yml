@@ -3,12 +3,14 @@ apiVersion: v1
 kind: Service
 metadata:
   annotations:
-    app.quarkus.io/vcs-url: https://github.com/rhdemo/2021-shipcommander.git
     app.quarkus.io/build-timestamp: 2021-02-04 - 15:17:14 +0000
+    app.openshift.io/vcs-url: https://github.com/rhdemo/2021-shipcommander.git
     app.quarkus.io/commit-id: 6ede90dbe4799c10ed7036053485e27d756e7006
+    app.quarkus.io/vcs-url: https://github.com/rhdemo/2021-shipcommander.git
   labels:
     app.kubernetes.io/name: ship-commander
     app.kubernetes.io/version: 1.0.0-SNAPSHOT
+    app.openshift.io/runtime: quarkus
   name: ship-commander
 spec:
   ports:
@@ -20,43 +22,81 @@ spec:
     app.kubernetes.io/version: 1.0.0-SNAPSHOT
   type: ClusterIP
 ---
-apiVersion: route.openshift.io/v1
-kind: Route
+apiVersion: image.openshift.io/v1
+kind: ImageStream
 metadata:
-  name: ship-commander
-  namespace: pacman-app
-  labels:
-    app.kubernetes.io/name: ship-commander
+  name: openjdk-11
 spec:
-  path: "/"
-  to:
-    kind: Service
-    name: ship-commander
+  dockerImageRepository: registry.access.redhat.com/ubi8/openjdk-11
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: image.openshift.io/v1
+kind: ImageStream
 metadata:
   annotations:
-    app.quarkus.io/vcs-url: https://github.com/rhdemo/2021-shipcommander.git
     app.quarkus.io/build-timestamp: 2021-02-04 - 15:17:14 +0000
+    app.openshift.io/vcs-url: https://github.com/rhdemo/2021-shipcommander.git
     app.quarkus.io/commit-id: 6ede90dbe4799c10ed7036053485e27d756e7006
+    app.quarkus.io/vcs-url: https://github.com/rhdemo/2021-shipcommander.git
   labels:
+    app.openshift.io/runtime: quarkus
+    app.kubernetes.io/name: ship-commander
+    app.kubernetes.io/version: 1.0.0-SNAPSHOT
+  name: ship-commander
+spec: {}
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  annotations:
+    app.quarkus.io/build-timestamp: 2021-02-04 - 15:17:14 +0000
+    app.openshift.io/vcs-url: https://github.com/rhdemo/2021-shipcommander.git
+    app.quarkus.io/commit-id: 6ede90dbe4799c10ed7036053485e27d756e7006
+    app.quarkus.io/vcs-url: https://github.com/rhdemo/2021-shipcommander.git
+  labels:
+    app.openshift.io/runtime: quarkus
+    app.kubernetes.io/name: ship-commander
+    app.kubernetes.io/version: 1.0.0-SNAPSHOT
+  name: ship-commander
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: ship-commander:1.0.0-SNAPSHOT
+  source:
+    binary: {}
+  strategy:
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: openjdk-11:latest
+---
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+    app.quarkus.io/build-timestamp: 2021-02-04 - 15:17:14 +0000
+    app.openshift.io/vcs-url: https://github.com/rhdemo/2021-shipcommander.git
+    app.quarkus.io/commit-id: 6ede90dbe4799c10ed7036053485e27d756e7006
+    app.quarkus.io/vcs-url: https://github.com/rhdemo/2021-shipcommander.git
+  labels:
+    app.openshift.io/runtime: quarkus
     app.kubernetes.io/name: ship-commander
     app.kubernetes.io/version: 1.0.0-SNAPSHOT
   name: ship-commander
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app.kubernetes.io/name: ship-commander
-      app.kubernetes.io/version: 1.0.0-SNAPSHOT
+    app.kubernetes.io/name: ship-commander
+    app.kubernetes.io/version: 1.0.0-SNAPSHOT
   template:
     metadata:
       annotations:
-        app.quarkus.io/vcs-url: https://github.com/rhdemo/2021-shipcommander.git
         app.quarkus.io/build-timestamp: 2021-02-04 - 15:17:14 +0000
+        app.openshift.io/vcs-url: https://github.com/rhdemo/2021-shipcommander.git
         app.quarkus.io/commit-id: 6ede90dbe4799c10ed7036053485e27d756e7006
+        app.quarkus.io/vcs-url: https://github.com/rhdemo/2021-shipcommander.git
       labels:
+        app.openshift.io/runtime: quarkus
         app.kubernetes.io/name: ship-commander
         app.kubernetes.io/version: 1.0.0-SNAPSHOT
     spec:
@@ -80,9 +120,18 @@ spec:
         - name: JAVA_LIB_DIR
           value: /deployments/lib
         image: sblanc/ship-commander:1.0.0-SNAPSHOT
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         name: ship-commander
         ports:
         - containerPort: 8080
           name: http
           protocol: TCP
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - ship-commander
+      from:
+        kind: ImageStreamTag
+        name: ship-commander:1.0.0-SNAPSHOT
+    type: ImageChange

@@ -1,2 +1,5 @@
 
 namespace: ship-commander
+
+resources:
+  - ship-commander.yaml
